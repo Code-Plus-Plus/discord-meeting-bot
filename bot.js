@@ -1,6 +1,7 @@
-// Programmer:	Gonzalo Pantoja
+// Programmer:	Gonzalo Pantoja1:
 // Date:	11/10/2018
-// Purpose: 	Discord bot to save meetings times and locations
+// Purpose: 	Discord bot to save meetings times and locations.
+// 		Only displays meetings after todays date.
 // Load up the discord.js library
 const Discord = require("discord.js");
 
@@ -34,10 +35,14 @@ client.on("guildDelete", guild => {
   client.user.setActivity(`Serving ${client.guilds.size} servers`);
 });
 
-  // Sets variables
-  const meetings = ["meeting at 3:00","hello"];	
-  const days = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"];
-  const months = ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"];
+// Read meetingdata.txt file from local storage into a variable
+const path = "meetingdata.txt"
+var fs = require("fs");
+var file = fs.readFileSync(path, "utf8");
+var meetings = file.trim().split(/\r?\n/);
+// Initialize variables
+const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 client.on("message", async message => {
   // This event will run on every single message received, from any channel or DM.
   
@@ -58,9 +63,48 @@ client.on("message", async message => {
 
   // Displays all meetings
   if(command === "meetings") {
+    // Read file and populate meetings array in case a new entrie have been added
+    file = fs.readFileSync(path, "utf8");
+    meetings = file.trim().split(/\r?\n/);
+    var today = new Date();
+    var today_dd = today.getDate();
+    if(today_dd<10) { today_dd = '0'+today_dd; }    // Format to 01 02 ect
+    var today_mm = today.getMonth()+1; // Jan starts at 0
+    if(today_mm<10) { today_mm = '0'+today_mm; }    // Format to 01 01 ect
+    var today_yyyy = today.getFullYear();
+    today = today_yyyy + '/' + today_mm + '/' + today_dd;
+
     message.channel.send("Upcoming Meetings:");
+    // Loop though meetings array and display them
     for (var i = 0; i < meetings.length; i++) {
-	    message.channel.send(meetings[i]);
+	    // Split string into an array
+	    var meeting_info = meetings[i].trim().split(/ +/g);
+	    // Create a date object with date given in argument
+	    var meeting_date = new Date(meeting_info[0]);
+	    // Gets meetings date in YYYY/MM/DD to compare with current date
+	    var meeting_yyyy = meeting_date.getFullYear();
+	    var meeting_mm = meeting_date.getMonth()+1;
+	    if(meeting_mm<10) { meeting_mm = '0'+meeting_mm; }
+	    var meeting_dd = meeting_date.getDate();
+	    if(meeting_dd<10) { meeting_dd = '0'+meeting_dd; }
+	    // Only display if meeting date is >= todays date
+	    var meeting_YYYYMMDD = meeting_yyyy + '/' + meeting_mm + '/' + meeting_dd;
+	    if(meeting_YYYYMMDD >= today) { 
+		    // Gets weekday name
+		    var weekday = days[meeting_date.getDay()];
+		    // Gets month name
+		    var month = months[meeting_date.getMonth()];
+		    // Gets day
+		    var day = meeting_date.getDate();
+	
+		    // Save the rest of the message in a string varibale called info
+		    var info = "";
+		    for(var j = 2; j < meeting_info.length; j++) {
+			info += meeting_info[j] + " ";
+	    	}
+	    	// Display meeting
+	    	message.channel.send(weekday + " " + month + " " + day + "th " + meeting_info[1] + "   " + info);
+    	    }
     }
   }
 // Add a meeting to meeting array
@@ -71,56 +115,34 @@ if(command === "addmeeting") {
 
     // Make sure the arguments passed is more than 5
     //              (Mon Jan 1 4:00 Bla-bla-meeting-room-number-bla)
-    if(args.length > 4) {
+    if(args.length > 1) {
 	// Make sure day name is valid
-	if(days.indexOf(args[0]) > -1) {
-		// Make sure month is valid
-		if(months.indexOf(args[1]) > -1) {
-			// Make sure day is between 1 and 31
-			if(args[2] >= 1 && args[2] <= 31) {
-				// Check if time is in valid format
-				if(/\d\d?:\d\d/.test(args[3])) {
-					// Add meeting to meeting message if passed validation
-					meetings.push(args.join(" "));
-					message.channel.send("Meeting added")
-				} else {
-					// Display error if numaric day isn't between 1 and 31
-					var temp = [];
-					temp.push(args[3]);
-					temp.push(" isn't in x:xx or xx:xx format (Ex. 1:00)");
-					temp.join("");
-					message.channel.send(temp);
-
-				}
-			} else {
-				// Display error if numaric day isn't between 1 and 31
-				var temp = [];
-				temp.push(args[2]);
-				temp.push(" isn't between 1 and 31");
-				temp.join("");
-				message.channel.send(temp);
-
-			}
+	// Accounts for Feb having a shorter month
+	if(/((0?[13578]|10|12)(-|\/)((0[0-9])|([12])([0-9]?)|(3[01]?))(-|\/)((\d{4})|(\d{2}))|(0?[2469]|11)(-|\/)((0[0-9])|([12])([0-9]?)|(3[0]?))(-|\/)((\d{4}|\d{2})))/.test(args[0])) {
+		// Make sure time is valid
+		if(/\d\d?:\d\d/.test(args[1])) {
+			// Add meeting to meeting array
+			meetings.push(args.join(" "));
+			// Sort array in order
+			meetings.sort();
+			// Put meetings array information into text file
+			var new_meetings_data = meetings.join("\n");
+			fs.writeFile(path, new_meetings_data, function (err) {
+				// Checks if there is an error
+				if (err) message.chennel.send(err);
+			});
+			message.channel.send("Meeting added");
 		} else {
-			// Display error if month isn't valid
-			var temp = [];
-			temp.push(args[1]);
-			temp.push(" isn't Jan, Feb, Mar, ect");
-			temp.join("");
-			message.channel.send(temp);
+			// Display error if time isn't XX:XX or X:XX
+			message.reply("Time isn't in XX:XX or X:XX format. Ex. MM/DD/YYYY XX:XX [message]")
 		}
 	} else {
-		// Display error if day name isn't valid
-		var temp = [];
-		temp.push(args[0]);
-		temp.push(" isn't Mon, Tue, Wed, Thu, Fri, Sat, or Sun");
-		temp.join("");
-		message.channel.send(temp);
+		// Display error if date isn't YYYY/MM/DD
+		message.reply("Date isn't in YYYY/MM/DD format. Ex. MM/DD/YYYY XX:XX [message]")
 	}
     } else {
-	    // Display error if less than 5 argsuments passed 
-	    message.channel.send("Error. Try using this format: [day] [month] [day numaric] [message]}");
-	    message.channel.send("Ex. Mon Jan 1 12:1:00 club meeting room 101");
+	    // Display error if less than 3 argsuments passed 
+	    message.reply("Error. Try using this format: MM/DD/YYYY XX:XX [message]} Ex. 1/9/2018 5:00 Meeting in room 101");
     }
   }
 
@@ -137,8 +159,6 @@ if(command === "addmeeting") {
     // And we get the bot to say the thing: 
     message.channel.send(sayMessage);
   }
-  
-  
 });
 
 client.login(config.token);
