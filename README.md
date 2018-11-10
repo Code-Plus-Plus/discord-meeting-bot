@@ -9,5 +9,5 @@ To install:
       "prefix": "!"
     }
    
-   then run npm bot.js
+   then run node bot.js
    
