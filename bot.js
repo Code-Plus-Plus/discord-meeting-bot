@@ -96,14 +96,15 @@ client.on("message", async message => {
 		    var month = months[meeting_date.getMonth()];
 		    // Gets day
 		    var day = meeting_date.getDate();
-	
+		    // Save time 
+		    time = meeting_info[1];
 		    // Save the rest of the message in a string varibale called info
 		    var info = "";
 		    for(var j = 2; j < meeting_info.length; j++) {
 			info += meeting_info[j] + " ";
 	    	}
 	    	// Display meeting
-	    	message.channel.send(weekday + " " + month + " " + day + "th " + meeting_info[1] + "   " + info);
+	    	message.channel.send("**" + weekday + " " + month + " " + day + "th " + time + "**   " + info);
     	    }
     }
   }
