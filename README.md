@@ -2,12 +2,14 @@
 Discord bot for code++ discord chat
 
 To install: 
-  add auth.json file containing:
+  1) clone repo
+  2) `npm install`
+  3) add auth.json file containing:
     
     {
       "token": "SERVER-TOKEN-HERE",
       "prefix": "!"
     }
    
-   then run node bot.js
+   4) run `node bot.js`
    
