@@ -1,4 +1,4 @@
-// Programmer:	Gonzalo Pantoja1:
+// Programmer:	Gonzalo Pantoja1
 // Date:	11/10/2018
 // Purpose: 	Discord bot to save meetings times and locations.
 // 		Only displays meetings after todays date.
@@ -40,9 +40,12 @@ const path = "meetingdata.txt"
 var fs = require("fs");
 var file = fs.readFileSync(path, "utf8");
 var meetings = file.trim().split(/\r?\n/);
-// Initialize variables
+// Initialize variables for bot commands
 const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+// Initialize variables for new user message
+const newUsers = [];
+
 client.on("message", async message => {
   // This event will run on every single message received, from any channel or DM.
   
@@ -161,5 +164,28 @@ if(command === "addmeeting") {
     message.channel.send(sayMessage);
   }
 });
+
+// New user welcome message
+client.on(`guildMemberAdd`, member => {
+	var generalChat = member.guild.channels.find(channelName => channelName.name === "general");
+	    
+	if (generalChat) {
+	    // Send greeting message in general chat
+            generalChat.send(`${member.user}, welcome to the server! 
+Reply with the following info to get access:
+*first name*
+*last name*
+*major*
+**Note: if you have class specific questions ask them in its corresponding chat, some TAs are actually there to help so @ them! Or just share your memes in general (っ▀¯▀)つ**`);
+        } else {
+	        member.guild.defaultChannel.send(`${member.username}, welcome to the server!
+Reply with the following info to get access:
+*first name*
+*last name*
+*major*
+**Note: if you have class specific questions ask them in its corresponding chat, some TAs are actually there to help so @ them! Or just share your memes in general (っ▀¯▀)つ**`);
+	}
+});
+			
 
 client.login(config.token);
